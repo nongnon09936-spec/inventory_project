@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="psru-card shadow-sm border border-gray-100">
+    
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 flex items-center psru-card-header border-b-0 mb-0 pb-0">
+            <i class="fa-solid fa-list-check mr-2" style="color: var(--psru-green);"></i> 
+            ติดตามพัสดุที่ถูกยืม
+        </h2>
+        <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full border border-yellow-200">
+            กำลังถูกยืม: {{ borrowing_list|length }} รายการ
+        </span>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-600 font-sarabun">
+            <thead class="bg-green-50 text-gray-700 uppercase font-medium font-prompt">
+                <tr>
+                    <th class="px-4 py-3">วันที่ยืม</th>
+                    <th class="px-4 py-3">ผู้ยืม</th>
+                    <th class="px-4 py-3">รายการ</th>
+                    <th class="px-4 py-3 text-center">จำนวน</th>
+                    <th class="px-4 py-3 text-center">ดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% if borrowing_list %}
+                    {% for item in borrowing_list %}
+                    <tr class="hover:bg-green-50 transition">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-gray-700">{{ item.borrow_date.strftime('%d/%m/%Y') }}</span>
+                                <span class="text-xs text-gray-400">{{ item.borrow_date.strftime('%H:%M น.') }}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-gray-800">{{ item.fullname }}</div>
+                            <div class="text-xs text-gray-400">{{ item.department }}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-[#006837]">{{ item.item_name }}</div>
+                            <div class="text-xs text-gray-400 mt-0.5">
+                                <i class="fa-solid fa-location-dot"></i> {{ item.location }} 
+                                <span class="mx-1">|</span> 
+                                <i class="fa-solid fa-box"></i> {{ item.storage_name }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 font-bold text-center text-lg text-gray-700">
+                            {{ item.amount }} <span class="text-xs font-normal text-gray-500">{{ item.unit }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openReturnModal('{{ item.id }}', '{{ item.item_name }}', '{{ item.fullname }}', {{ item.amount }})" 
+                                class="btn-psru shadow-sm text-xs px-3 py-1.5 flex items-center justify-center mx-auto gap-1">
+                                <i class="fa-solid fa-rotate-left"></i> รับคืน
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-10 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 mt-4">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-solid fa-check-circle text-4xl mb-3 text-green-300"></i>
+                                <p>ไม่มีรายการค้างส่งคืน (ครบถ้วน)</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="returnModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onclick="closeReturnModal()"></div>
+        <div class="bg-white rounded-xl p-6 w-full max-w-md relative z-10 shadow-2xl border-t-4 border-[#006837]">
+            <h3 class="text-xl font-bold mb-2 text-[#006837] font-prompt flex items-center">
+                <i class="fa-solid fa-rotate-left mr-2"></i> ยืนยันการรับคืนพัสดุ
+            </h3>
+            
+            <div class="mt-2 mb-4 p-3 bg-green-50 rounded-lg border border-green-100">
+                <p class="text-sm text-gray-600">
+                    <span class="block mb-1">📦 รายการ: <b id="returnItemName" class="text-gray-800">...</b></span>
+                    <span class="block mb-1">👤 ผู้คืน: <span id="returnUserName">...</span></span>
+                    <span class="block">🔢 จำนวนที่ยืม: <b id="returnAmount" class="text-red-600">...</b></span>
+                </p>
+            </div>
+
+            <form action="{{ url_for('dashboard.return_item_confirm') }}" method="POST">
+                <input type="hidden" name="borrow_id" id="returnBorrowId">
+                <input type="hidden" name="borrowed_amount" id="returnBorrowedAmount">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">จำนวนที่คืนจริง</label>
+                    <input type="number" name="return_amount" id="returnAmountInput" required min="1"
+                        class="w-full border-2 border-green-200 rounded-lg p-2 text-center text-lg font-bold text-[#006837] focus:ring-green-500 focus:border-green-500 outline-none">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">สภาพพัสดุ</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="cursor-pointer bg-white border border-gray-300 rounded-lg p-2 text-center hover:bg-gray-50 peer-checked:border-green-500 peer-checked:bg-green-50">
+                            <input type="radio" name="item_condition" value="ปกติ" checked class="accent-[#006837]">
+                            <span class="text-sm block mt-1">✅ สมบูรณ์</span>
+                        </label>
+                        <label class="cursor-pointer bg-white border border-gray-300 rounded-lg p-2 text-center hover:bg-gray-50">
+                            <input type="radio" name="item_condition" value="ชำรุด" class="accent-red-600">
+                            <span class="text-sm block mt-1">⚠️ ชำรุด/หาย</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ (ถ้ามี)</label>
+                    <input type="text" name="return_note" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-[#006837] focus:border-[#006837]" placeholder="เช่น คืนล่าช้า, อุปกรณ์ไม่ครบ...">
+                </div>
+
+                <div class="flex gap-2 justify-end pt-2 border-t mt-4">
+                    <button type="button" onclick="closeReturnModal()" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn-psru shadow-md px-4 py-2 rounded-lg text-sm font-medium transition">
+                        ยืนยันรับคืน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openReturnModal(id, item, user, amount) {
+        document.getElementById('returnBorrowId').value = id;
+        document.getElementById('returnBorrowedAmount').value = amount;
+        document.getElementById('returnItemName').innerText = item;
+        document.getElementById('returnUserName').innerText = user;
+        document.getElementById('returnAmount').innerText = amount;
+        
+        // ตั้งค่าเริ่มต้นช่องกรอก = จำนวนที่ยืม
+        const inputAmount = document.getElementById('returnAmountInput');
+        inputAmount.value = amount;
+        inputAmount.max = amount; 
+
+        document.getElementById('returnModal').classList.remove('hidden');
+    }
+
+    function closeReturnModal() {
+        document.getElementById('returnModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

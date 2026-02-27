@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="psru-card shadow-sm border border-gray-100">
+    
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <h2 class="text-2xl font-bold text-gray-800 flex items-center psru-card-header border-b-0 mb-0 pb-0">
+            <i class="fa-solid fa-clock-rotate-left mr-2" style="color: var(--psru-green);"></i> 
+            ประวัติการยืม-คืน
+            {% if location %}
+                <span class="text-sm text-gray-500 ml-2 font-normal">({{ location }})</span>
+            {% endif %}
+        </h2>
+        
+        <form action="{{ url_for('dashboard.borrow_history') }}" method="get" class="flex flex-wrap gap-2 items-end">
+            {% if location %}<input type="hidden" name="location" value="{{ location }}">{% endif %}
+            
+            <div>
+                <label class="text-xs text-gray-500 block mb-1">ตั้งแต่วันที่</label>
+                <input type="date" name="start_date" value="{{ start_date }}" class="border p-2 rounded text-sm focus:ring-2 focus:ring-[#006837] outline-none text-gray-600">
+            </div>
+            <div>
+                <label class="text-xs text-gray-500 block mb-1">ถึงวันที่</label>
+                <input type="date" name="end_date" value="{{ end_date }}" class="border p-2 rounded text-sm focus:ring-2 focus:ring-[#006837] outline-none text-gray-600">
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="btn-psru shadow transition h-[38px] flex items-center mt-auto">
+                    <i class="fa-solid fa-filter mr-1"></i> กรอง
+                </button>
+                <a href="{{ url_for('dashboard.borrow_history', location=location) }}" class="btn-psru-outline h-[38px] flex items-center mt-auto text-decoration-none">
+                    ล้าง
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left text-gray-600 font-sarabun">
+            <thead class="bg-green-50 text-gray-700 uppercase font-medium font-prompt">
+                <tr>
+                    <th class="px-4 py-3">สถานะ</th>
+                    <th class="px-4 py-3">วันที่ยืม</th>
+                    <th class="px-4 py-3">วันที่คืน</th>
+                    <th class="px-4 py-3">ผู้ยืม</th>
+                    <th class="px-4 py-3">รายการ</th>
+                    <th class="px-4 py-3 text-center">จำนวน</th>
+                    <th class="px-4 py-3">หมายเหตุ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% if history %}
+                    {% for row in history %}
+                    <tr class="hover:bg-green-50 transition">
+                        <td class="px-4 py-3">
+                            {% if row.status == 'returned' %}
+                                <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold border border-green-200 flex items-center w-fit">
+                                    <i class="fa-solid fa-check mr-1"></i> คืนแล้ว
+                                </span>
+                            {% else %}
+                                <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold border border-yellow-200 animate-pulse flex items-center w-fit">
+                                    <i class="fa-solid fa-hourglass-half mr-1"></i> กำลังยืม
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-4 py-3 font-medium">{{ row.borrow_date.strftime('%d/%m/%Y %H:%M') }}</td>
+
+                        <td class="px-4 py-3 font-medium text-[#006837]">
+                            {% if row.return_date %}
+                                {{ row.return_date.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                <span class="text-gray-300">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-gray-800">{{ row.fullname }}</div>
+                            <div class="text-xs text-gray-400">{{ row.department }}</div>
+                        </td>
+
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-gray-800">{{ row.item_name }}</div>
+                            {% if row.location %}
+                            <div class="flex items-center gap-1 mt-1">
+                                <span class="text-[10px] bg-green-50 text-[#006837] px-1.5 py-0.5 rounded border border-green-100 font-bold">
+                                    {{ row.storage_name }}
+                                </span>
+                                <span class="text-[10px] text-gray-400">
+                                    ({{ row.location }})
+                                </span>
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-4 py-3 font-bold text-gray-700 text-center">
+                            {{ row.amount }} {{ row.unit }}
+                        </td>
+
+                        <td class="px-4 py-3 text-xs italic text-gray-500 max-w-xs truncate">
+                            {{ row.note if row.note else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-10 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 mt-4">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-regular fa-folder-open text-4xl mb-3 text-gray-300"></i>
+                                <p>ยังไม่มีประวัติการยืม-คืน</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

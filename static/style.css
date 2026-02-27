@@ -1,0 +1,182 @@
+/* ============================= */
+/* 1. DESIGN SYSTEM (Apple / Bento Theme) */
+/* ============================= */
+:root {
+    /* แถบสีเขียวของ PSRU (เก็บไว้เพื่อเอกลักษณ์มหาลัย) */
+    --psru-green: #006837;
+    --psru-green-hover: #004d26;
+
+    /* สีสไตล์ Apple (Minimal & Clean) */
+    --text-primary: #1d1d1f; /* สีเทาดำของตัวหนังสือ Apple */
+    --text-secondary: #86868b; /* สีเทาอ่อนสำหรับข้อความรอง */
+    --bg-light: #f5f5f7; /* สีพื้นหลัง Signature ของ Apple */
+    --card-border: #d2d2d7; /* สีขอบบางๆ */
+    --white: #ffffff;
+
+    /* Typography */
+    --font-body: 'Sarabun', sans-serif;
+    --font-heading: 'Prompt', sans-serif;
+}
+
+/* ============================= */
+/* 2. GLOBAL & ANIMATION */
+/* ============================= */
+
+/* อนิเมชั่นเปิดตัวแบบนุ่มนวล (Smooth Fade) */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+body {
+    margin: 0;
+    color: var(--text-primary);
+    background-color: var(--bg-light) !important;
+    line-height: 1.5;
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1); /* จังหวะขยับแบบ Apple */
+    -webkit-font-smoothing: antialiased; /* บังคับตัวหนังสือให้คมชัดขึ้น */
+}
+
+/* ============================= */
+/* 3. TYPOGRAPHY (สู้กับ Tailwind) */
+/* ============================= */
+
+body, div, p, span, a, li, ul, ol, td, input, select, textarea {
+    font-family: var(--font-body) !important;
+}
+
+h1, h2, h3, h4, h5, h6, .btn, .navbar-brand, .nav-link, th, strong, b, button {
+    font-family: var(--font-heading) !important;
+    color: var(--text-primary); 
+    letter-spacing: -0.015em; /* บีบช่องไฟนิดนึงให้ดูโมเดิร์นขึ้น */
+}
+
+.fa, .fas, .far, .fal, .fab, i {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+}
+
+/* ============================= */
+/* 4. COMPONENTS & MICRO-INTERACTIONS */
+/* ============================= */
+
+/* ===== Navbar ===== */
+.navbar-psru {
+    background: var(--psru-green);
+    color: var(--white);
+    /* เอาเงาออก เปลี่ยนเป็นขอบล่างบางๆ แทน */
+    box-shadow: none;
+    border-bottom: 1px solid rgba(0,0,0,0.1); 
+}
+
+/* ===== Card (สไตล์ Apple) ===== */
+.psru-card, .bg-white, .card {
+    background: var(--white) !important;
+    border: none !important; /* ลบขอบสีเขียวออก */
+    border-radius: 12px !important; /* เพิ่มความโค้งมนแบบ Apple */
+    padding: 24px !important;
+    margin-bottom: 20px;
+    
+    /* เงาสไตล์ Apple: นุ่มนวล ฟุ้ง ดูมีมิติ */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+                0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    
+    /* เพิ่ม transition ให้นุ่มนวลเวลาเอาเมาส์ชี้ */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+/* เอฟเฟกต์ตอนเอาเมาส์ชี้ (Hover): ให้การ์ดลอยขึ้นนิดนึงและเงาชัดขึ้น */
+.psru-card:hover, .bg-white:hover, .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+                0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* หัวข้อในการ์ด */
+.psru-card-header {
+    font-family: var(--font-heading);
+    color: var(--text-primary); /* ใช้สีเทาดำให้ดูแพง */
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 12px;
+}
+
+/* ===== ข้อความ "เลือกห้องเพื่อดูรายการพัสดุข้างใน" ===== */
+span.bg-white.rounded-full.shadow-sm, 
+.hint-text-box {
+    /* ลบพื้นหลังและเงาออกให้หมด */
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+
+    /* จัดสไตล์ให้เป็นข้อความธรรมดา */
+    color: #6b7280; /* สีเทาเข้ม */
+    font-size: 0.875rem; 
+    font-weight: normal;
+    margin-bottom: 8px;
+    display: inline-block; 
+}
+
+/* ===== ตาราง ===== */
+th {
+    background-color: transparent !important;
+    color: var(--text-secondary) !important; /* หัวตารางสีอ่อน */
+    font-weight: 500;
+    border-bottom: 1px solid var(--card-border);
+}
+tbody tr {
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+}
+tbody tr:hover {
+    background-color: #f9f9f9; /* ไฮไลท์บรรทัดแบบคลีนๆ */
+    cursor: pointer;
+}
+
+/* ===== Buttons (ปุ่มทรงแคปซูลแบบ Apple) ===== */
+.btn-psru, .btn, button, a.btn {
+    background-color: var(--psru-green);
+    color: var(--white);
+    padding: 10px 24px;
+    border: none;
+    border-radius: 980px !important; /* ทำให้ปุ่มเป็นวงรีแบบแคปซูล */
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-psru:hover, .btn:hover, button:hover, a.btn:hover {
+    background-color: var(--psru-green-hover);
+    transform: scale(1.02); /* ขยายตอนชี้ */
+}
+
+.btn-psru:active, .btn:active, button:active, a.btn:active {
+    transform: scale(0.98); /* ยุบตอนกด */
+    opacity: 0.8;
+}
+
+/* ปุ่มแบบโปร่งใส (Outline) */
+.btn-psru-outline {
+    background-color: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    border-radius: 980px !important;
+    padding: 8px 22px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.btn-psru-outline:hover {
+    border-color: var(--psru-green);
+    color: var(--psru-green);
+}
+/* ============================= */
+/* 🛑 ปิดเอฟเฟกต์ Hover เฉพาะกล่องกราฟ (แก้กราฟเบลอ) */
+/* ============================= */
+#chart-card:hover {
+    transform: none !important; /* ห้ามขยับเด็ดขาด */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+                0 2px 4px -1px rgba(0, 0, 0, 0.06) !important; /* ล็อกเงาไว้ให้เท่าเดิม */
+}

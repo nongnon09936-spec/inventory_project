@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="psru-card shadow-sm border border-gray-100">
+    
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <h2 class="text-2xl font-bold text-gray-800 flex items-center psru-card-header border-b-0 mb-0 pb-0">
+            <i class="fa-solid fa-clock-rotate-left mr-2" style="color: var(--psru-green);"></i> 
+            ประวัติการเบิก-จ่าย
+            {% if location %}
+                <span class="text-sm text-gray-500 ml-2 font-normal">({{ location }})</span>
+            {% endif %}
+        </h2>
+        
+        <form action="{{ url_for('dashboard.history') }}" method="GET" class="flex flex-wrap gap-2 items-end">
+            {% if location %}<input type="hidden" name="location" value="{{ location }}">{% endif %}
+
+            <div>
+                <label class="text-xs text-gray-500 block mb-1">ตั้งแต่วันที่</label>
+                <input type="date" name="start_date" value="{{ start_date }}" class="border p-2 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none text-gray-600">
+            </div>
+            <div>
+                <label class="text-xs text-gray-500 block mb-1">ถึงวันที่</label>
+                <input type="date" name="end_date" value="{{ end_date }}" class="border p-2 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none text-gray-600">
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="btn-psru shadow transition h-[38px] flex items-center mt-auto">
+                    <i class="fa-solid fa-filter mr-1"></i> ค้นหา
+                </button>
+                
+                <a href="{{ url_for('dashboard.history', location=location) }}" class="btn-psru-outline h-[38px] flex items-center mt-auto text-decoration-none">
+                    ล้างค่า
+                </a>
+
+                <a href="{{ url_for('dashboard.export_history', start_date=start_date, end_date=end_date, location=location) }}" target="_blank" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm shadow transition h-[38px] flex items-center mt-auto text-decoration-none font-medium">
+                    <i class="fa-solid fa-file-excel mr-1"></i> Excel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full leading-normal">
+            <thead>
+                <tr class="bg-green-50 text-gray-600 uppercase text-xs leading-normal">
+                    <th class="py-3 px-6 text-left">วัน-เวลา</th>
+                    <th class="py-3 px-6 text-left">ผู้เบิก</th>
+                    <th class="py-3 px-6 text-left">รายการ</th>
+                    <th class="py-3 px-6 text-center">จำนวน</th>
+                    <th class="py-3 px-6 text-left">สถานที่เก็บ</th>
+                    <th class="py-3 px-6 text-center">สถานะ</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm font-light">
+                {% if history_data %}
+                    {% for row in history_data %}
+                    <tr class="border-b border-gray-200 hover:bg-green-50 transition">
+                        <td class="py-4 px-6 text-left whitespace-nowrap">
+                            <span class="font-medium text-gray-700">{{ row.transaction_date.strftime('%d/%m/%Y') }}</span><br>
+                            <span class="text-xs text-gray-400">{{ row.transaction_date.strftime('%H:%M น.') }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-left">
+                            <div class="font-bold text-gray-700">{{ row.fullname }}</div>
+                            <div class="text-xs text-gray-400">{{ row.department }}</div>
+                        </td>
+                        <td class="py-4 px-6 text-left">
+                            <span class="font-medium text-gray-800">{{ row.item_name }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            <span class="bg-green-100 text-green-800 py-1 px-3 rounded-full text-xs font-bold">
+                                {{ row.amount }} {{ row.unit }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-left">
+                            {% if row.location %}
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-gray-500">
+                                        <i class="fa-solid fa-door-open mr-1"></i> {{ row.location }}
+                                    </span>
+                                    {% if row.storage_name %}
+                                        <span class="text-xs font-bold mt-0.5" style="color: var(--psru-green);">
+                                            <i class="fa-solid fa-box mr-1"></i> {{ row.storage_name }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-gray-400 text-xs">- ไม่ระบุ -</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            {% if row.status == 'approved' or row.status == 'withdraw' %}
+                                <span class="bg-green-100 text-green-700 py-1 px-3 rounded-full text-xs font-bold border border-green-200">
+                                    <i class="fa-solid fa-check mr-1"></i> เบิกสำเร็จ
+                                </span>
+                            {% else %}
+                                <span class="bg-gray-100 text-gray-600 py-1 px-3 rounded-full text-xs font-bold border border-gray-200">
+                                    {{ row.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="py-10 text-center text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 mt-4">
+                            <div class="flex flex-col items-center">
+                                <i class="fa-regular fa-folder-open text-4xl mb-3 text-gray-300"></i>
+                                <p>ไม่พบประวัติการเบิกในช่วงเวลานี้</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

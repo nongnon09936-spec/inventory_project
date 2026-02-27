@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริหารพัสดุ - PSRU</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;700&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+
+</head>
+
+<body class="flex flex-col min-h-screen"> <nav class="navbar-psru shadow-md mb-8">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                
+                <a href="{{ url_for('dashboard.index') }}" class="hover:opacity-90 transition cursor-pointer text-decoration-none group">
+                    <h1 class="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+                        <div class="bg-white text-[#006837] w-10 h-10 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-boxes-stacked text-lg"></i>
+                        </div>
+                        <span>ระบบบริหารพัสดุ</span>
+                    </h1>
+                </a>
+
+                <div class="flex items-center">
+                    {% block buttons %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div id="flash-messages" class="fixed top-24 right-5 z-50 flex flex-col gap-2">
+          {% for category, message in messages %}
+            <div class="px-6 py-4 rounded-lg shadow-lg text-white flex items-center gap-3 animate-bounce-in backdrop-blur-sm
+                  {{ 'bg-[#006837]/90' if category == 'success' else 'bg-red-500/90' }}">
+                
+                {% if category == 'success' %}
+                  <i class="fa-solid fa-circle-check text-xl text-[#FFC107]"></i> {% else %}
+                  <i class="fa-solid fa-circle-exclamation text-xl"></i>
+                {% endif %}
+
+                <span class="font-medium font-prompt">{{ message }}</span>
+                
+                <button onclick="this.parentElement.remove()" class="ml-4 opacity-70 hover:opacity-100">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+          {% endfor %}
+        </div>
+
+        <script>
+            setTimeout(function() {
+                const flashMsg = document.getElementById('flash-messages');
+                if (flashMsg) {
+                    flashMsg.style.transition = "opacity 0.5s ease";
+                    flashMsg.style.opacity = "0";
+                    setTimeout(() => flashMsg.remove(), 500);
+                }
+            }, 3000); 
+        </script>
+      {% endif %}
+    {% endwith %}
+
+    <main class="flex-grow w-full max-w-7xl mx-auto px-6 pb-12">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-[#003366] text-white py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center text-sm font-light opacity-80">
+            <div>
+                <p>&copy; 2024 ระบบบริหารพัสดุและครุภัณฑ์</p>
+                <p class="text-xs text-[#FFC107]">มหาวิทยาลัยราชภัฏพิบูลสงคราม</p>
+            </div>
+            <div class="mt-2 md:mt-0">
+                <i class="fa-solid fa-code mr-1"></i> Developed by IT Support
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}<script>
+    document.addEventListener('submit', function (e) {
+        // หาปุ่ม submit ในฟอร์มที่กำลังถูกกดส่ง
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            // ปิดการใช้งานปุ่ม และเปลี่ยนข้อความให้รู้ว่ากำลังโหลด
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังประมวลผล...';
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        }
+    });
+    // 1. ฟังก์ชันสำหรับปุ่มลบทั่วไป (พัสดุ, ผู้ใช้, ตู้เก็บของ)
+    function confirmDelete(event, url, title, text) {
+        event.preventDefault(); // หยุดไม่ให้ลิงก์ทำงานทันที
+        
+        Swal.fire({
+            title: title || 'ยืนยันการลบ?',
+            text: text || "ข้อมูลนี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: '<i class="fa-solid fa-trash mr-1"></i> ใช่, ลบทิ้งเลย',
+            cancelButtonText: 'ยกเลิก',
+            reverseButtons: true // สลับให้ปุ่มยกเลิกอยู่ซ้าย (ผู้ใช้จะได้ไม่เผลอกด)
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url; // ถ้ากดยืนยัน ค่อยพาไปที่ลิงก์ลบข้อมูล
+            }
+        });
+    }
+
+    // 2. ฟังก์ชันยืนยัน 2 ชั้น สำหรับลบห้อง (แบบ SweetAlert2)
+    function confirmDoubleCheckSwal(event, url, roomName) {
+        event.preventDefault();
+        
+        // ด่านที่ 1
+        Swal.fire({
+            title: `ลบห้อง '${roomName}'?`,
+            text: "พัสดุและตู้เก็บทั้งหมดที่อยู่ในห้องนี้จะหายไป!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'ใช่, ดำเนินการต่อ',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // ด่านที่ 2 (ถ้ายืนยันด่านแรก)
+                Swal.fire({
+                    title: '🚨 แจ้งเตือนครั้งสุดท้าย!',
+                    html: `คุณแน่ใจจริงๆ ใช่ไหมว่าจะลบ <b>'${roomName}'</b> ทิ้ง?<br><br>ข้อมูลประวัติการเบิก-ยืมทั้งหมดที่อยู่ในห้องนี้จะถูก <b style="color:red;">"ลบถาวรและกู้คืนไม่ได้"</b>`,
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#9ca3af',
+                    confirmButtonText: 'ยืนยันการลบทิ้ง!',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((secondResult) => {
+                    if (secondResult.isConfirmed) {
+                        window.location.href = url;
+                    }
+                });
+            }
+        });
+    }
+</script>{% endblock %}
+</body>
+</html>

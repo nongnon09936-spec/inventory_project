@@ -1,0 +1,499 @@
+{% extends 'base.html' %}
+
+{% block buttons %}
+<div class="flex flex-wrap gap-2">
+    <div onclick="toggleManageModal()"
+        class="btn-psru shadow transition cursor-pointer flex items-center select-none text-sm">
+        <i class="fa-solid fa-gear mr-2"></i> จัดการข้อมูล
+    </div>
+
+    <a href="{{ url_for('dashboard.history', location=current_location) }}"
+        class="btn-psru-outline shadow-sm transition flex items-center select-none text-decoration-none text-sm bg-white">
+        <i class="fa-solid fa-clock-rotate-left mr-2"></i> ประวัติเบิก
+    </a>
+
+    <a href="{{ url_for('dashboard.borrow_history', location=current_location) }}"
+        class="btn-psru-outline shadow-sm transition flex items-center select-none text-decoration-none text-sm bg-white">
+        <i class="fa-solid fa-clock-rotate-left mr-2"></i> ประวัติยืม
+    </a>
+
+    <a href="/tracking"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-sm transition flex items-center select-none text-decoration-none text-sm font-medium">
+        <i class="fa-solid fa-list-check mr-2"></i> ติดตามการยืม
+    </a>
+
+    {% if current_location %}
+    <a href="{{ url_for('dashboard.export_items', location=current_location) }}" 
+   target="_blank" 
+   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full shadow transition flex items-center select-none text-decoration-none text-sm font-medium">
+    <i class="fa-solid fa-file-excel mr-1"></i> 
+    Export พัสดุ {% if current_location %}(ห้อง {{ current_location }}){% endif %}
+</a>
+
+    <div onclick="toggleAddModal()"
+        class="btn-psru shadow-lg transition cursor-pointer flex items-center select-none text-sm ring-2 ring-white ring-offset-2 ring-offset-gray-100">
+        <i class="fa-solid fa-plus mr-2"></i> เพิ่มพัสดุ
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if not current_location %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mt-4">
+    
+    <div class="lg:col-span-2 psru-card" id="chart-card">
+    <h3 class="text-lg font-bold mb-4 flex items-center border-b pb-2 font-prompt">
+        <i class="fa-solid fa-chart-simple mr-2 text-[#006837]"></i> ปริมาณพัสดุแยกตามห้อง
+    </h3>
+        <div class="relative h-64 w-full">
+            <canvas id="storageChart"></canvas>
+        </div>
+    </div>
+
+    <div class="rounded-2xl shadow-lg p-6 text-white flex flex-col justify-between relative overflow-hidden h-full" 
+         style="background: linear-gradient(135deg, #006837 0%, #004d26 100%);">
+        
+        <div class="relative z-10">
+            <p class="text-green-100 text-sm font-medium mb-1 font-sarabun">พัสดุทั้งหมดในระบบ</p>
+            <h3 class="text-5xl font-bold font-prompt tracking-tight">{{ total_items }} <span class="text-lg font-normal opacity-80">ชิ้น</span></h3>
+        </div>
+
+        <div class="relative z-10 mt-6 pt-4 border-t border-white/20 grid grid-cols-2 gap-4">
+            
+            <div class="border-r border-white/20 pr-2">
+                <p class="text-green-100 text-[11px] md:text-xs font-medium mb-1 font-sarabun">
+                    <i class="fa-solid fa-triangle-exclamation text-[#FFC107] mr-1"></i>แนะนำให้เติมพัสดุ
+                </p>
+                <h3 class="text-2xl font-bold text-[#FFC107] font-prompt">
+                    {{ low_stock }} <span class="text-xs font-normal text-white opacity-80">รายการ</span>
+                </h3>
+            </div>
+
+            <div class="pl-2 group">
+                <a href="/tracking" class="block cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <p class="text-green-100 text-[11px] md:text-xs font-medium mb-1 font-sarabun group-hover:text-white transition">
+                            <i class="fa-solid fa-hand-holding-hand text-blue-300 mr-1"></i>กำลังถูกยืม
+                        </p>
+                        <i class="fa-solid fa-chevron-right text-[10px] opacity-0 group-hover:opacity-100 transition transform group-hover:translate-x-1"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white font-prompt group-hover:underline decoration-2 underline-offset-4">
+                        {{ borrow_count }} <span class="text-xs font-normal opacity-80">รายการ</span>
+                    </h3>
+                </a>
+            </div>
+
+        </div>
+
+        <div class="absolute -right-6 -bottom-6 text-white opacity-10 pointer-events-none">
+            <i class="fa-solid fa-boxes-stacked text-9xl"></i>
+        </div>
+    </div>
+
+</div> 
+
+<div class="mt-8">
+    <div class="flex justify-between items-end mb-6">
+        <h3 class="text-2xl font-bold flex items-center font-prompt">
+            <i class="fa-solid fa-map-location-dot mr-2 text-[#D4AF37]"></i> เลือกห้อง / โซนจัดเก็บ
+        </h3>
+        <span class="text-sm text-gray-500 font-normal">เลือกห้องเพื่อดูรายการพัสดุข้างใน</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for room in room_stats %}
+        <div class="group psru-card cursor-pointer"
+            onclick="window.location.href='{{ url_for('dashboard.room_view', location_name=room.location) }}'">
+
+            <div class="flex justify-between items-start">
+                <div>
+                    <h4 class="text-xl font-bold mb-2 transition font-prompt">{{ room.location }}</h4>
+                    <div class="text-sm text-gray-500 flex flex-col gap-1">
+                        <span class="flex items-center"><i class="fa-solid fa-box w-6 text-center mr-1 text-[#D4AF37]"></i> {{ room.item_count }} รายการ</span>
+                        <span class="flex items-center"><i class="fa-solid fa-layer-group w-6 text-center mr-1 text-[#D4AF37]"></i> {{ room.storage_count }} จุดเก็บ</span>
+                    </div>
+                </div>
+                <div class="bg-gray-100 p-3 rounded-full text-gray-400 group-hover:bg-[#006837] group-hover:text-white transition shadow-sm">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-between items-center border-t border-gray-100 pt-4">
+                <span class="text-xs text-gray-400 group-hover:text-[#006837] transition">คลิกเพื่อเปิดดู</span>
+
+                <div class="flex gap-2">
+                    <button type="button"
+                        onclick="event.stopPropagation(); openEditRoomModal('{{ room.location }}')"
+                        class="text-gray-300 hover:text-[#FFC107] transition px-2 py-1 rounded hover:bg-yellow-50"
+                        title="แก้ไขชื่อห้อง">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
+                    <a href="/delete_room/{{ room.location }}"
+                    onclick="event.stopPropagation(); confirmDoubleCheckSwal(event, this.href, '{{ room.location }}');"
+                    class="text-gray-300 hover:text-red-500 transition px-2 py-1 rounded hover:bg-red-50"
+                    title="ลบห้องนี้ทิ้ง">
+                <i class="fa-solid fa-trash-can"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <button type="button" onclick="toggleManageModal(); switchTab('tabStorage');"
+            class="group psru-card border-2 border-dashed border-gray-300 hover:border-[#006837] hover:bg-green-50 transition flex flex-col items-center justify-center text-gray-400 hover:text-[#006837] min-h-[180px] cursor-pointer" style="box-shadow: none !important;">
+            <div class="bg-gray-50 p-4 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform group-hover:bg-white">
+                <i class="fa-solid fa-plus text-2xl"></i>
+            </div>
+            <span class="font-medium text-lg font-prompt">เพิ่มห้องใหม่</span>
+        </button>
+    </div>
+</div>
+
+{% else %}
+<div class="flex items-center gap-4 mb-6 mt-4">
+    <a href="{{ url_for('dashboard.index') }}"
+        class="bg-white border border-gray-200 text-gray-500 hover:text-[#006837] hover:border-[#006837] w-10 h-10 flex items-center justify-center rounded-full shadow-sm transition">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+        <h2 class="text-3xl font-bold font-prompt">{{ current_location }}</h2>
+        <p class="text-sm text-gray-500 mt-1">กำลังดูรายการพัสดุในห้องนี้</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="psru-card flex justify-between items-center py-4">
+        <div>
+            <p class="text-gray-500 text-sm mb-1">จำนวนพัสดุในห้องนี้</p>
+            <span class="text-3xl font-bold text-[#006837] font-prompt">{{ total_items }} <span class="text-base font-normal text-gray-400">รายการ</span></span>
+        </div>
+        <div class="bg-green-50 p-3 rounded-full text-[#006837] text-2xl"><i class="fa-solid fa-box-open"></i></div>
+    </div>
+    <div class="psru-card flex justify-between items-center py-4">
+        <div>
+            <p class="text-gray-500 text-sm mb-1">ของใกล้หมด (< 10)</p>
+            <span class="text-3xl font-bold text-red-500 font-prompt">{{ low_stock }} <span class="text-base font-normal text-gray-400">รายการ</span></span>
+        </div>
+        <div class="bg-red-50 p-3 rounded-full text-red-500 text-2xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    </div>
+</div>
+
+<div class="mb-6 relative">
+    <span class="absolute inset-y-0 left-0 flex items-center pl-4"><i class="fa-solid fa-search text-gray-400"></i></span>
+    <input type="text" id="searchInput" onkeyup="searchTable()"
+        class="w-full py-3 pl-12 pr-4 text-gray-700 bg-white border border-gray-300 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-[#006837] transition font-sarabun"
+        placeholder="ค้นหาพัสดุในห้องนี้... (พิมพ์ชื่อ หรือ ตู้เก็บ)">
+</div>
+
+<div class="psru-card overflow-hidden !p-0">
+    <div class="overflow-x-auto">
+        <table class="min-w-full leading-normal">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 uppercase text-xs leading-normal font-prompt">
+                    <th class="py-4 px-6 text-left">ชื่อพัสดุ</th>
+                    <th class="py-4 px-6 text-left">ที่เก็บ (ตู้/ชั้น)</th>
+                    <th class="py-4 px-6 text-center">คงเหลือ</th>
+                    <th class="py-4 px-6 text-center">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm font-light font-sarabun">
+                {% if items %}
+                {% for item in items %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="py-4 px-6 text-left whitespace-nowrap">
+                        <span class="font-bold text-gray-800 text-base">{{ item.item_name }}</span><br>
+                        <span class="text-xs text-gray-400">ลำดับที่ {{ loop.index }}</span>
+                    </td>
+                    <td class="py-4 px-6 text-left">
+                        <span class="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-full text-xs font-bold border border-gray-200">
+                            <i class="fa-solid fa-box mr-1"></i> {{ item.storage_name }}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="font-bold text-lg {{ 'text-red-500' if item.quantity < 5 else 'text-[#006837]' }}">
+                            {{ item.quantity }}
+                        </span>
+                        <span class="text-xs text-gray-500">{{ item.unit }}</span>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <div class="flex item-center justify-center gap-1">
+                            <button onclick="openWithdrawModal(this)" data-id="{{ item.item_id }}"
+                                data-name="{{ item.item_name }}" data-qty="{{ item.quantity }}"
+                                class="bg-[#E65100] hover:bg-[#EF6C00] text-white py-1.5 px-4 rounded-full text-xs font-bold transition">
+                                เบิก
+                            </button>
+
+                            <button onclick="openBorrowModal(this)" data-id="{{ item.item_id }}"
+                                data-name="{{ item.item_name }}" data-qty="{{ item.quantity }}"
+                                class="bg-[#006837] hover:bg-[#004d26] text-white py-1.5 px-4 rounded-full text-xs font-bold transition">
+                                ยืม
+                            </button>
+
+                            <button onclick="openEditItemModal(this)" data-id="{{ item.item_id }}"
+                                data-name="{{ item.item_name }}" data-storage="{{ item.storage_id }}"
+                                data-qty="{{ item.quantity }}" data-unit="{{ item.unit }}"
+                                class="bg-gray-100 hover:bg-gray-200 text-gray-600 py-1.5 px-3 rounded-full text-xs transition">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+
+                            <a href="/delete_item/{{ item.item_id }}?current_room={{ current_location }}"
+                                onclick="confirmDelete(event, this.href, 'ลบพัสดุชิ้นนี้?', 'คุณต้องการลบ {{ item.item_name }} ใช่หรือไม่');"
+                                class="bg-gray-100 hover:bg-red-500 hover:text-white text-gray-400 py-1.5 px-3 rounded-full text-xs transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="4" class="py-12 text-center text-gray-400">
+                        <div class="flex flex-col items-center">
+                            <i class="fa-solid fa-box-open text-5xl mb-3 text-gray-300"></i>
+                            <p>ห้องนี้ยังว่างเปล่า</p>
+                            <button type="button" onclick="toggleAddModal()"
+                                class="mt-2 text-[#006837] hover:underline text-sm font-bold">เพิ่มพัสดุชิ้นแรก</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% include 'modals.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleAddModal() { document.getElementById('addItemModal').classList.toggle('hidden'); }
+    function toggleManageModal() { document.getElementById('manageModal').classList.toggle('hidden'); }
+
+    function openEditRoomModal(name) {
+        const modal = document.getElementById('editRoomModal');
+        if (modal) {
+            document.getElementById('inputOldRoomName').value = name;
+            document.getElementById('inputNewRoomName').value = name; 
+            document.getElementById('displayOldRoomName').innerText = name;
+            modal.classList.remove('hidden');
+        }
+    }
+    function closeEditRoomModal() {
+        const modal = document.getElementById('editRoomModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function openWithdrawModal(btn) {
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        const qty = btn.getAttribute('data-qty');
+        document.getElementById('withdrawItemId').value = id;
+        document.getElementById('withdrawItemName').innerText = name;
+        document.getElementById('currentStock').innerText = qty;
+        let input = document.getElementById('withdrawAmount');
+        input.setAttribute('max', qty);
+        input.value = 1;
+        document.getElementById('withdrawModal').classList.remove('hidden');
+    }
+    function closeWithdrawModal() { document.getElementById('withdrawModal').classList.add('hidden'); }
+
+    // แก้ไขฟังก์ชันยืมให้เช็คสต็อกด้วย
+    function openBorrowModal(btn) {
+        if (document.getElementById('borrowModal')) {
+            const qty = btn.getAttribute('data-qty');
+            document.getElementById('borrowItemId').value = btn.getAttribute('data-id');
+            document.getElementById('borrowItemName').innerText = btn.getAttribute('data-name');
+            
+            const amountInput = document.querySelector('#borrowModal input[name="amount"]');
+            amountInput.setAttribute('max', qty);
+            amountInput.value = 1;
+            
+            document.getElementById('borrowModal').classList.remove('hidden');
+        }
+    }
+    function closeBorrowModal() {
+        if (document.getElementById('borrowModal')) document.getElementById('borrowModal').classList.add('hidden');
+    }
+
+    function openEditItemModal(btn) {
+        document.getElementById('edit_item_id').value = btn.getAttribute('data-id');
+        document.getElementById('edit_item_name').value = btn.getAttribute('data-name');
+        document.getElementById('edit_quantity').value = btn.getAttribute('data-qty');
+        document.getElementById('edit_unit').value = btn.getAttribute('data-unit');
+        document.getElementById('edit_storage_id').value = btn.getAttribute('data-storage');
+        document.getElementById('editItemModal').classList.remove('hidden');
+    }
+    function closeEditItemModal() { document.getElementById('editItemModal').classList.add('hidden'); }
+
+    function openEditUserModal(id, name, dept) {
+        document.getElementById('manageModal').classList.add('hidden');
+        document.getElementById('editUserId').value = id;
+        document.getElementById('editUserFullname').value = name;
+        document.getElementById('editUserDept').value = dept;
+        document.getElementById('editUserModal').classList.remove('hidden');
+    }
+    function closeEditUserModal() {
+        document.getElementById('editUserModal').classList.add('hidden');
+        document.getElementById('manageModal').classList.remove('hidden');
+    }
+
+    function openEditStorageModal(id, name, loc) {
+        document.getElementById('manageModal').classList.add('hidden');
+        document.getElementById('editStorageId').value = id;
+        document.getElementById('editStorageName').value = name;
+        document.getElementById('editStorageLocation').value = loc;
+        document.getElementById('editStorageModal').classList.remove('hidden');
+    }
+    function closeEditStorageModal() {
+        document.getElementById('editStorageModal').classList.add('hidden');
+        document.getElementById('manageModal').classList.remove('hidden');
+    }
+
+    function switchTab(tabName) {
+        document.getElementById('tabUser').classList.add('hidden');
+        document.getElementById('tabStorage').classList.add('hidden');
+        document.getElementById('btnTabUser').classList.replace('border-[#006837]', 'border-transparent');
+        document.getElementById('btnTabStorage').classList.replace('border-[#006837]', 'border-transparent');
+        
+        document.getElementById('btnTabUser').classList.replace('text-[#006837]', 'text-gray-500');
+        document.getElementById('btnTabStorage').classList.replace('text-[#006837]', 'text-gray-500');
+
+        document.getElementById(tabName).classList.remove('hidden');
+        
+        if (tabName === 'tabUser') {
+            document.getElementById('btnTabUser').classList.replace('border-transparent', 'border-[#006837]');
+            document.getElementById('btnTabUser').classList.replace('text-gray-500', 'text-[#006837]');
+        } else {
+            document.getElementById('btnTabStorage').classList.replace('border-transparent', 'border-[#006837]');
+            document.getElementById('btnTabStorage').classList.replace('text-gray-500', 'text-[#006837]');
+        }
+    }
+
+    function searchTable() {
+        var input = document.getElementById("searchInput");
+        var filter = input.value.toUpperCase();
+        var tr = document.querySelector("table").getElementsByTagName("tr");
+        for (var i = 1; i < tr.length; i++) {
+            var tdName = tr[i].getElementsByTagName("td")[0];
+            var tdStorage = tr[i].getElementsByTagName("td")[1];
+            if (tdName || tdStorage) {
+                var txtName = tdName.textContent || tdName.innerText;
+                var txtStorage = tdStorage.textContent || tdStorage.innerText;
+                if (txtName.toUpperCase().indexOf(filter) > -1 || txtStorage.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('storageChart');
+
+        if (ctx) {
+            const labels = {{ chart_labels | tojson }};
+            const lowData = {{ low_stock_data | tojson if low_stock_data is defined else [] | tojson }};
+            const normalData = {{ normal_stock_data | tojson if normal_stock_data is defined else [] | tojson }};
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'ของใกล้หมด (<10)',
+                            data: lowData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        },
+                        {
+                            label: 'สถานะปกติ',
+                            data: normalData,
+                            backgroundColor: 'rgba(0, 104, 55, 0.7)',
+                            borderColor: 'rgba(0, 104, 55, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'bottom' }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true }
+                    }
+                }
+            });
+        }
+    }); 
+    // ----------------------------------------------------
+    // เพิ่มสคริปต์ SweetAlert ตรงนี้ จบในไฟล์ index.html เลย
+    // ----------------------------------------------------
+    function confirmDelete(event, url, title, text) {
+        event.preventDefault(); 
+        Swal.fire({
+            title: title || 'ยืนยันการลบ?',
+            text: text || "ข้อมูลนี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: '<i class="fa-solid fa-trash mr-1"></i> ใช่, ลบทิ้งเลย',
+            cancelButtonText: 'ยกเลิก',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    }
+
+    function confirmDoubleCheckSwal(event, url, roomName) {
+        event.preventDefault();
+        event.stopPropagation(); // กันคลิกทะลุตัวการ์ด
+        
+        Swal.fire({
+            title: `ลบห้อง '${roomName}'?`,
+            text: "พัสดุและตู้เก็บทั้งหมดที่อยู่ในห้องนี้จะหายไป!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'ใช่, ดำเนินการต่อ',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: '🚨 แจ้งเตือนครั้งสุดท้าย!',
+                    html: `คุณแน่ใจจริงๆ ใช่ไหมว่าจะลบ <b>'${roomName}'</b> ทิ้ง?<br><br>ข้อมูลจะถูก <b style="color:red;">"ลบถาวรและกู้คืนไม่ได้"</b>`,
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#9ca3af',
+                    confirmButtonText: 'ยืนยันการลบทิ้ง!',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((secondResult) => {
+                    if (secondResult.isConfirmed) {
+                        window.location.href = url;
+                    }
+                });
+            }
+        });
+    }
+</script>
+{% endblock %}
